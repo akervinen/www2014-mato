@@ -1,0 +1,20 @@
+body {
+	text-align: center;
+}
+
+#title {
+	text-align: center;
+}
+
+#mato {
+	display: inline-block;
+	margin: 0 auto;
+
+	text-align: center;
+}
+
+#help {
+	display: inline-block;
+
+	text-align: center;
+}

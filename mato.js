@@ -1,35 +1,42 @@
 function Mato(ctx) {
 	"use strict";
 
-	// engine stuff
+	//-- Engine variables
+	// time stuff
 	var currentTime = 0,
 		lastTime = (new Date()).getTime();
 
-	// Canvas context
+	// canvas context
 	this.context = ctx;
 
-	// How much the snake has eaten (and how long it is)
+	//-- Gameplay variables
+
+	// Snake's position, measured in cells
+	this.x = 0;
+	this.y = 0;
+
+	// how much the snake has eaten (and how long it is)
 	this.eaten = 0;
 
 	// save this for loops
-	var that = this;
+	var self = this;
 
 	// updating and drawing
-	var update = function(delta) {
-		that.texthing = 'Frametime: ' + delta;
+	var update = function draw(delta) {
+		self.texthing = 'Frametime: ' + delta;
 	};
 
-	var draw = function(delta) {
+	var draw = function update(delta) {
 		ctx.save();
 		ctx.clearRect(0, 0, 800, 160);
 
 		ctx.font = '12pt sans-serif';
-		ctx.fillText(that.texthing, 10, 24);
+		ctx.fillText(self.texthing, 10, 24);
 
 		ctx.restore();
 	};
 
-	var loop = function() {
+	this.loop = function loop() {
 		// TODO: Polyfill this?
 		window.requestAnimationFrame(loop);
 
@@ -42,10 +49,9 @@ function Mato(ctx) {
 
 		lastTime = currentTime;
 	};
-	this.loop = loop;
 
 	// Feed the snake
-	this.eat = function() {
+	this.eat = function eat() {
 		this.eaten++;
 	};
 }

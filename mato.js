@@ -51,38 +51,45 @@ function Mato(ctx) {
 
 	this.mato = {
 		direction: 'right',
-		lastDirection: 'right',
+		moveQueue: [],
 		// Mato's position, measured in cells
 		head: { x: 8, y: 8 },
 		tail: { x: 4, y: 8 },
 		// All points where Mato has turned
 		turns: [],
 		// How many cells per second Mato moves
-		speed: 4,
+		speed: 12,
 		// How much Mato has eaten (and how long it is)
 		eaten: 4,
 
 		setDirection: function setDirection(dir) {
-			if (dir !== this.lastDirection && dir !== opposites[this.lastDirection]) {
-				this.direction = dir;
+			var lastDir = this.moveQueue[0] || this.direction;
+			if (dir !== lastDir && dir !== opposites[lastDir]) {
+				this.moveQueue.unshift(dir);
 			}
 		},
 		getNextHeadPos: function getNextHeadPos() {
+			var nextMove = this.moveQueue[0] || this.direction;
 			return {
-				x: this.head.x + directions[this.direction].x,
-				y: this.head.y + directions[this.direction].y
+				x: this.head.x + directions[nextMove].x,
+				y: this.head.y + directions[nextMove].y
 			};
 		},
 		getNextTailPos: function getNextTailPos() {
+			var nextMove = this.moveQueue[0] || this.direction;
 			return {
-				x: this.tail.x + directions[this.direction].x,
-				y: this.tail.y + directions[this.direction].y
+				x: this.tail.x + directions[nextMove].x,
+				y: this.tail.y + directions[nextMove].y
 			};
 		},
 		move: function move() {
 			this.head = this.getNextHeadPos();
 			this.tail = this.getNextTailPos();
-			this.lastDirection = this.direction;
+
+			if (this.moveQueue.length > 0) {
+				this.direction = this.moveQueue.shift();
+				this.turns.unshift(this.head.x, this.head.y);
+			}
 		}
 	};
 
@@ -123,7 +130,8 @@ function Mato(ctx) {
 	};
 
 	var lerpAmount = 0,
-		lastPos;
+		lastHead = this.mato.head,
+		lastTail = this.mato.tail;
 	var draw = function draw(delta, curTime) {
 		ctx.save();
 		ctx.clearRect(0, 0, 800, 640);
@@ -144,8 +152,10 @@ function Mato(ctx) {
 		ctx.strokeStyle = 'black';
 		ctx.lineWidth = 16;
 
-		if (m.head !== lastPos) {
+		if (m.head !== lastHead) {
 			lerpAmount = 0;
+			lastHead = m.head;
+			lastTail = m.tail;
 		} else {
 			// Animate movement using simple lerp
 			lerpAmount += delta * m.speed;
@@ -156,16 +166,15 @@ function Mato(ctx) {
 
 		var head = getCellPos(m.head.x, m.head.y),
 			tail = getCellPos(m.tail.x, m.tail.y);
-		var nextHead = m.getNextHeadPos(),
-			nextTail = m.getNextTailPos();
-		nextHead = getCellPos(nextHead.x, nextHead.y);
-		nextTail = getCellPos(nextTail.x, nextTail.y);
+		var lastHeadPos = getCellPos(lastHead.x, lastHead.y),
+			lastTailPos = getCellPos(lastTail.x, lastTail.y);
 		var turn;
 
-		lastPos = m.head;
+		//head = lerp(lastHeadPos, head, lerpAmount);
+		//tail = lerp(lastTailPos, tail, lerpAmount);
 
-		//head = lerp(head, nextHead, lerpAmount);
-		//tail = lerp(tail, nextTail, lerpAmount);
+		//lastHead = m.head;
+		//lastTail = m.tail;
 
 		ctx.beginPath();
 		ctx.moveTo(head.x, head.y);

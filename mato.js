@@ -65,7 +65,7 @@ function Mato(ctx) {
 		setDirection: function setDirection(dir) {
 			var lastDir = this.moveQueue[0] || this.direction;
 			if (dir !== lastDir && dir !== opposites[lastDir]) {
-				this.moveQueue.unshift(dir);
+				this.moveQueue.push(dir);
 			}
 		},
 		getNextHeadPos: function getNextHeadPos() {
@@ -77,18 +77,51 @@ function Mato(ctx) {
 		},
 		getNextTailPos: function getNextTailPos() {
 			var nextMove = this.moveQueue[0] || this.direction;
-			return {
-				x: this.tail.x + directions[nextMove].x,
-				y: this.tail.y + directions[nextMove].y
-			};
+			if (this.turns.length > 0) {
+				var x = this.tail.x,
+					y = this.tail.y,
+					turn = this.turns[this.turns.length - 1];
+
+				if (x < turn.x) {
+					x += 1;
+				} else if (x > turn.x) {
+					x -= 1;
+				}
+
+				if (y < turn.y) {
+					y += 1;
+				} else if (y > turn.y) {
+					y -= 1;
+				}
+
+				if (x === turn.x && y === turn.y) {
+					this.turns.pop();
+				}
+
+				return {
+					x: x,
+					y: y
+				};
+			} else {
+				return {
+					x: this.tail.x + directions[nextMove].x,
+					y: this.tail.y + directions[nextMove].y
+				};
+			}
 		},
 		move: function move() {
+			if (this.moveQueue.length > 0) {
+				this.turns.unshift({
+					x: this.head.x,
+					y: this.head.y
+				});
+			}
+
 			this.head = this.getNextHeadPos();
 			this.tail = this.getNextTailPos();
 
 			if (this.moveQueue.length > 0) {
 				this.direction = this.moveQueue.shift();
-				this.turns.unshift(this.head.x, this.head.y);
 			}
 		}
 	};

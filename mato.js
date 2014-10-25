@@ -25,6 +25,28 @@ function Mato(ctx) {
 		};
 	};
 
+	var directions = {
+		up: { x: 0, y: 1 },
+		down: { x: 0, y: -1 },
+		left: { x: -1, y: 0 },
+		right: { x: 1, y: 0 }
+	};
+
+	// Opposite directions to make checking neater later
+	var opposites = {
+		up: 'down',
+		down: 'up',
+		left: 'right',
+		right: 'left'
+	};
+
+	var keys = {
+		37: 'left',
+		38: 'up',
+		39: 'right',
+		40: 'down'
+	};
+
 	//-- Gameplay variables
 
 	this.mato = {
@@ -33,24 +55,36 @@ function Mato(ctx) {
 		head: { x: 8, y: 8 },
 		tail: { x: 4, y: 8 },
 		// All points where Mato has turned
-		turns: []
+		turns: [],
+		// How much Mato has eaten (and how long it is)
+		eaten: 4
 	};
-
-	// How much Mato has eaten (and how long it is)
-	this.eaten = 4;
 
 	// Updating and drawing
 	var update = function update(delta) {
-		self.texthing = 'Frametime: ' + delta;
+		// Update debug text
+		self.debugText = [
+			'Frametime: ' + delta,
+			'Length: ' + self.mato.eaten,
+			'Position: ' + self.mato.head.x + ', ' + self.mato.head.y
+		];
+
+
 	};
 
 	var draw = function draw(delta) {
 		ctx.save();
 		ctx.clearRect(0, 0, 800, 160);
 
+		// Debug text
+		var textY = 24;
 		ctx.font = '12pt sans-serif';
-		ctx.fillText(self.texthing, 10, 24);
+		self.debugText.forEach(function(t) {
+			ctx.fillText(t, 10, textY);
+			textY += 16;
+		});
 
+		// TODO: Separate function?
 		// draw Mato
 		var m = self.mato;
 
@@ -90,6 +124,6 @@ function Mato(ctx) {
 
 	// Feed Mato
 	this.eat = function eat() {
-		this.eaten++;
+		self.mato.eaten++;
 	};
 }

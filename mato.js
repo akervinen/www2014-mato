@@ -265,6 +265,7 @@ function MatoGame(ctx) {
 
 	//-- Gameplay variables
 	this.mato = new Mato(16);
+	var food, oldFood;
 
 	//-- Gameplay functions
 	this.isPaused = function() { return paused; };
@@ -332,11 +333,29 @@ function MatoGame(ctx) {
 			];
 		}
 
+		if (!food) {
+			food = {
+				x: Math.floor(Math.random() * game.width),
+				y: Math.floor(Math.random() * game.height)
+			};
+		}
+
 		// When entering new cell, change direction if needed
 		lastMove += delta * 1000;
 		if (lastMove > (1000 / m.getSpeed())) {
 			m.move();
 			lastMove = 0;
+
+
+			if (m.getHeadPos().x === food.x && m.getHeadPos().y === food.y) {
+				m.eat();
+
+				oldFood = food;
+				food = undefined;
+			} else if (oldFood) {
+				// Remove old food one frame(-ish) later
+				oldFood = undefined;
+			}
 		}
 	};
 
@@ -372,6 +391,20 @@ function MatoGame(ctx) {
 			});
 		}
 
+		// Draw food
+		ctx.fillStyle = 'green';
+
+		var pos;
+		if (food) {
+			pos = getCellPos(food.x, food.y);
+			ctx.fillRect(pos.x - 8, pos.y - 8, 14, 14);
+		}
+		if (oldFood) {
+			pos = getCellPos(oldFood.x, oldFood.y);
+			ctx.fillRect(pos.x - 8, pos.y - 8, 14, 14);
+		}
+
+		// Draw Mato
 		game.mato.draw(delta, ctx);
 
 		ctx.restore();

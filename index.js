@@ -1,3 +1,5 @@
+/*global $, Mato */
+
 var mato;
 
 $(function() {
@@ -5,8 +7,7 @@ $(function() {
 
 	var canvas = $('#mato')[0];
 	if (canvas.getContext) {
-		var ctx = canvas.getContext('2d');
-		mato = new Mato(ctx);
-		mato.loop();
+		mato = new Mato(canvas.getContext('2d'));
+		mato.start(true);
 	}
 });

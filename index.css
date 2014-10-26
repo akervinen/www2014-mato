@@ -4,7 +4,7 @@ body {
 	background-color: #a8c5ed;
 }
 
-#title {
+.title {
 	text-align: center;
 }
 
@@ -14,12 +14,6 @@ body {
 	margin: 0 auto;
 
 	background-color: cornflowerblue;
-
-	text-align: center;
-}
-
-#help {
-	display: inline-block;
 
 	text-align: center;
 }

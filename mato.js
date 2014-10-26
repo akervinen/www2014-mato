@@ -1,5 +1,7 @@
+/*global performance */
+
 function Mato(ctx) {
-	"use strict";
+	'use strict';
 
 	// Save this for inner functions
 	var self = this;
@@ -11,17 +13,14 @@ function Mato(ctx) {
 
 	// Time stuff
 	var currentTime = 0,
-		lastTime = (new Date()).getTime();
+		lastTime = performance.now();
 
 	var paused = false;
 
-	// Canvas context
-	this.context = ctx;
-
 	// Cell stuff
 	this.cellSize = 16; // pixels
-	this.width = 800/16; // cells
-	this.height = 640/16; // cells
+	this.width = ctx.canvas.width/this.cellSize; // cells
+	this.height = ctx.canvas.height/this.cellSize; // cells
 
 	// Get the x,y of cell's center
 	var getCellPos = function getCellPos(x, y) {
@@ -101,12 +100,12 @@ function Mato(ctx) {
 					x: x,
 					y: y
 				};
-			} else {
-				return {
-					x: this.tail.x + directions[nextMove].x,
-					y: this.tail.y + directions[nextMove].y
-				};
 			}
+
+			return {
+				x: this.tail.x + directions[nextMove].x,
+				y: this.tail.y + directions[nextMove].y
+			};
 		},
 		move: function move() {
 			// Add current position to turn list if we're going to turn
@@ -145,7 +144,7 @@ function Mato(ctx) {
 
 	//-- Gameplay functions
 	this.pause = function pause() {
-		self.paused = !self.paused;
+		paused = !paused;
 	};
 
 	// Key bindings
@@ -176,6 +175,9 @@ function Mato(ctx) {
 	window.onkeydown = function onkeydown(e) {
 		var dir = moveKeys[e.keyCode];
 		if (dir) {
+			if (paused) {
+				self.pause();
+			}
 			self.mato.setDirection(dir);
 			e.preventDefault();
 			return;
@@ -188,7 +190,6 @@ function Mato(ctx) {
 		if (debug && debugKeys[e.keyCode]) {
 			debugKeys[e.keyCode]();
 			e.preventDefault();
-			return;
 		}
 	};
 
@@ -198,10 +199,11 @@ function Mato(ctx) {
 		// Update debug text
 		if (debug) {
 			debugText = [
-				'Frametime: ' + delta,
+				'Frametime: ' + Math.round(delta * 1000 * 100)/100 + ' ms',
 				'Length: ' + self.mato.eaten,
 				'Position: ' + self.mato.head.x + ', ' + self.mato.head.y,
-				'Direction: ' + self.mato.direction
+				'Direction: ' + self.mato.direction,
+				'Window: ' + window.innerWidth + 'x' + window.innerHeight
 			];
 		}
 
@@ -220,6 +222,13 @@ function Mato(ctx) {
 		};
 	};
 
+	var pauseText = [
+		'Press Space or move to start',
+		'',
+		'WASD or Arrows to move',
+		'Space to pause'
+	];
+
 	var lerpAmount = 0,
 		// These are for keeping track of when head/tail have changed
 		// and updated to current values after that
@@ -230,17 +239,28 @@ function Mato(ctx) {
 		lastHead = this.mato.head,
 		lastTail = this.mato.tail;
 
-	var draw = function draw(delta, curTime) {
+	var draw = function draw(delta) {
 		ctx.save();
+
 		ctx.clearRect(0, 0, 800, 640);
 
+		var textY;
 		// Debug text
 		if (debug && debugText.length > 0) {
-			var textY = 24;
+			textY = 24;
 			ctx.font = '12pt sans-serif';
 			debugText.forEach(function(t) {
 				ctx.fillText(t, 10, textY);
 				textY += 16;
+			});
+		}
+		// Help text if we're paused
+		if (paused) {
+			textY = 300;
+			ctx.font = '16pt sans-serif';
+			pauseText.forEach(function(t) {
+				ctx.fillText(t, 400, textY);
+				textY += 20;
 			});
 		}
 
@@ -250,7 +270,7 @@ function Mato(ctx) {
 
 		ctx.fillStyle = 'black';
 		ctx.strokeStyle = 'black';
-		ctx.lineWidth = 16;
+		ctx.lineWidth = self.cellSize;
 
 		if (m.head !== lastCurrHead) {
 			lerpAmount = 0;
@@ -297,19 +317,32 @@ function Mato(ctx) {
 		ctx.restore();
 	};
 
-	this.loop = function loop() {
+	var tick = function tick() {
 		// TODO: Polyfill this?
-		window.requestAnimationFrame(loop);
+		window.requestAnimationFrame(tick, ctx.canvas);
 
 		// Update time stuff
-		currentTime = (new Date()).getTime();
+		currentTime = performance.now();
 		var delta = (currentTime - lastTime)/1000;
 
-		if (!self.paused) {
-			update(delta, currentTime);
-			draw(delta, currentTime);
+		if (!paused) {
+			update(delta);
 		}
 
+		draw(delta);
+
 		lastTime = currentTime;
+	};
+
+	this.start = function start(startPaused) {
+		paused = startPaused;
+
+		// If we start paused, draw one frame so it looks better
+		if (paused) {
+			update(0);
+			draw(0);
+		}
+
+		tick();
 	};
 }

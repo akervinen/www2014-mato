@@ -12,6 +12,7 @@ function Mato(ctx) {
 		debugText = [];
 
 	// Time stuff
+	// TODO: Polyfill performance
 	var currentTime = 0,
 		lastTime = performance.now();
 
@@ -202,8 +203,7 @@ function Mato(ctx) {
 				'Frametime: ' + Math.round(delta * 1000 * 100)/100 + ' ms',
 				'Length: ' + self.mato.eaten,
 				'Position: ' + self.mato.head.x + ', ' + self.mato.head.y,
-				'Direction: ' + self.mato.direction,
-				'Window: ' + window.innerWidth + 'x' + window.innerHeight
+				'Direction: ' + self.mato.direction
 			];
 		}
 

@@ -50,14 +50,16 @@ function Mato(ctx) {
 
 	this.mato = {
 		direction: 'right',
+		// Queue of moves, most recent being last
 		moveQueue: [],
 		// Mato's position, measured in cells
 		head: { x: 8, y: 8 },
 		tail: { x: 4, y: 8 },
 		// All points where Mato has turned
+		// First index is turn nearest to the head (most recent turn)
 		turns: [],
 		// How many cells per second Mato moves
-		speed: 12,
+		speed: 16,
 		// How much Mato has eaten (and how long it is)
 		eaten: 4,
 
@@ -107,6 +109,7 @@ function Mato(ctx) {
 			}
 		},
 		move: function move() {
+			// Add current position to turn list if we're going to turn
 			if (this.moveQueue.length > 0) {
 				this.turns.unshift({
 					x: this.head.x,
@@ -115,6 +118,8 @@ function Mato(ctx) {
 			}
 
 			this.head = this.getNextHeadPos();
+
+			// If we've eaten, don't shorten the tail
 			if (!this.longer) {
 				this.tail = this.getNextTailPos();
 			} else {
@@ -123,8 +128,9 @@ function Mato(ctx) {
 
 			if (this.turns.length > 0) {
 				var turn = this.turns[this.turns.length - 1];
+				// Remove the last turn if the tail has reached it
 				if (this.tail.x === turn.x && this.tail.y === turn.y) {
-					this.turns.pop();
+					this.lastTurn = this.turns.pop();
 				}
 			}
 
@@ -188,7 +194,7 @@ function Mato(ctx) {
 
 	//-- Updating and drawing
 	var lastMove = 0;
-	var update = function update(delta, curTime) {
+	var update = function update(delta) {
 		// Update debug text
 		if (debug) {
 			debugText = [
@@ -200,9 +206,10 @@ function Mato(ctx) {
 		}
 
 		// When entering new cell, change direction if needed
-		if ((curTime - lastMove) > (1000/self.mato.speed)) {
+		lastMove += delta * 1000;
+		if (lastMove > (1000/self.mato.speed)) {
 			self.mato.move();
-			lastMove = curTime;
+			lastMove = 0;
 		}
 	};
 
@@ -214,8 +221,15 @@ function Mato(ctx) {
 	};
 
 	var lerpAmount = 0,
+		// These are for keeping track of when head/tail have changed
+		// and updated to current values after that
+		lastCurrHead = this.mato.head,
+		lastCurrTail = this.mato.tail,
+		// These should never be equal to current values after this,
+		// since they're used for animating Mato
 		lastHead = this.mato.head,
 		lastTail = this.mato.tail;
+
 	var draw = function draw(delta, curTime) {
 		ctx.save();
 		ctx.clearRect(0, 0, 800, 640);
@@ -238,10 +252,12 @@ function Mato(ctx) {
 		ctx.strokeStyle = 'black';
 		ctx.lineWidth = 16;
 
-		if (m.head !== lastHead) {
+		if (m.head !== lastCurrHead) {
 			lerpAmount = 0;
-			lastHead = m.head;
-			lastTail = m.tail;
+			lastTail = lastCurrTail;
+			lastHead = lastCurrHead;
+			lastCurrTail = m.tail;
+			lastCurrHead = m.head;
 		} else {
 			// Animate movement using simple lerp
 			lerpAmount += delta * m.speed;
@@ -256,11 +272,8 @@ function Mato(ctx) {
 			lastTailPos = getCellPos(lastTail.x, lastTail.y);
 		var turn;
 
-		//head = lerp(lastHeadPos, head, lerpAmount);
-		//tail = lerp(lastTailPos, tail, lerpAmount);
-
-		//lastHead = m.head;
-		//lastTail = m.tail;
+		head = lerp(lastHeadPos, head, lerpAmount);
+		tail = lerp(lastTailPos, tail, lerpAmount);
 
 		ctx.beginPath();
 		ctx.moveTo(head.x, head.y);
@@ -268,6 +281,16 @@ function Mato(ctx) {
 			turn = getCellPos(t.x, t.y);
 			ctx.lineTo(turn.x, turn.y);
 		});
+		// Without this, the tail animates wonky since the last turn was already removed from the list
+		// So we keep the turn until our past-tail has reached it and draw it manually
+		if (m.lastTurn) {
+			if (m.lastTurn.x === lastTail.x && m.lastTurn.y === lastTail.y) {
+				m.lastTurn = undefined;
+			} else {
+				turn = getCellPos(m.lastTurn.x, m.lastTurn.y);
+				ctx.lineTo(turn.x, turn.y);
+			}
+		}
 		ctx.lineTo(tail.x, tail.y);
 		ctx.stroke();
 

@@ -5,9 +5,15 @@ function Mato(ctx) {
 	var self = this;
 
 	//-- Engine variables
+	// Debug mode, adds some textual info and more keys
+	var debug = true,
+		debugText = [];
+
 	// Time stuff
 	var currentTime = 0,
 		lastTime = (new Date()).getTime();
+
+	var paused = false;
 
 	// Canvas context
 	this.context = ctx;
@@ -40,13 +46,6 @@ function Mato(ctx) {
 		right: 'left'
 	};
 
-	var keys = {
-		37: 'left',
-		38: 'up',
-		39: 'right',
-		40: 'down'
-	};
-
 	//-- Gameplay variables
 
 	this.mato = {
@@ -63,7 +62,9 @@ function Mato(ctx) {
 		eaten: 4,
 
 		setDirection: function setDirection(dir) {
-			var lastDir = this.moveQueue[0] || this.direction;
+			if (self.paused) { return; }
+
+			var lastDir = this.moveQueue[this.moveQueue.length - 1] || this.direction;
 			if (dir !== lastDir && dir !== opposites[lastDir]) {
 				this.moveQueue.push(dir);
 			}
@@ -94,10 +95,6 @@ function Mato(ctx) {
 					y -= 1;
 				}
 
-				if (x === turn.x && y === turn.y) {
-					this.turns.pop();
-				}
-
 				return {
 					x: x,
 					y: y
@@ -118,22 +115,74 @@ function Mato(ctx) {
 			}
 
 			this.head = this.getNextHeadPos();
-			this.tail = this.getNextTailPos();
+			if (!this.longer) {
+				this.tail = this.getNextTailPos();
+			} else {
+				this.longer = false;
+			}
+
+			if (this.turns.length > 0) {
+				var turn = this.turns[this.turns.length - 1];
+				if (this.tail.x === turn.x && this.tail.y === turn.y) {
+					this.turns.pop();
+				}
+			}
 
 			if (this.moveQueue.length > 0) {
 				this.direction = this.moveQueue.shift();
 			}
+		},
+		eat: function eat() {
+			this.longer = true;
 		}
 	};
 
 	//-- Gameplay functions
+	this.pause = function pause() {
+		self.paused = !self.paused;
+	};
+
+	// Key bindings
+	var moveKeys = {
+		// arrows
+		37: 'left',
+		38: 'up',
+		39: 'right',
+		40: 'down',
+		// wasd
+		87: 'up',
+		65: 'left',
+		83: 'down',
+		68: 'right'
+	};
+
+	var otherKeys = {
+		// space
+		32: this.pause
+	};
+
+	var debugKeys = {
+		// e
+		69: function() { self.mato.eat(); }
+	};
 
 	//-- Window events
 	window.onkeydown = function onkeydown(e) {
-		var dir = keys[e.keyCode];
+		var dir = moveKeys[e.keyCode];
 		if (dir) {
 			self.mato.setDirection(dir);
 			e.preventDefault();
+			return;
+		}
+		if (otherKeys[e.keyCode]) {
+			otherKeys[e.keyCode]();
+			e.preventDefault();
+			return;
+		}
+		if (debug && debugKeys[e.keyCode]) {
+			debugKeys[e.keyCode]();
+			e.preventDefault();
+			return;
 		}
 	};
 
@@ -141,12 +190,14 @@ function Mato(ctx) {
 	var lastMove = 0;
 	var update = function update(delta, curTime) {
 		// Update debug text
-		self.debugText = [
-			'Frametime: ' + delta,
-			'Length: ' + self.mato.eaten,
-			'Position: ' + self.mato.head.x + ', ' + self.mato.head.y,
-			'Direction: ' + self.mato.direction
-		];
+		if (debug) {
+			debugText = [
+				'Frametime: ' + delta,
+				'Length: ' + self.mato.eaten,
+				'Position: ' + self.mato.head.x + ', ' + self.mato.head.y,
+				'Direction: ' + self.mato.direction
+			];
+		}
 
 		// When entering new cell, change direction if needed
 		if ((curTime - lastMove) > (1000/self.mato.speed)) {
@@ -170,12 +221,14 @@ function Mato(ctx) {
 		ctx.clearRect(0, 0, 800, 640);
 
 		// Debug text
-		var textY = 24;
-		ctx.font = '12pt sans-serif';
-		self.debugText.forEach(function(t) {
-			ctx.fillText(t, 10, textY);
-			textY += 16;
-		});
+		if (debug && debugText.length > 0) {
+			var textY = 24;
+			ctx.font = '12pt sans-serif';
+			debugText.forEach(function(t) {
+				ctx.fillText(t, 10, textY);
+				textY += 16;
+			});
+		}
 
 		// TODO: Separate function?
 		// draw Mato
@@ -229,14 +282,11 @@ function Mato(ctx) {
 		currentTime = (new Date()).getTime();
 		var delta = (currentTime - lastTime)/1000;
 
-		update(delta, currentTime);
-		draw(delta, currentTime);
+		if (!self.paused) {
+			update(delta, currentTime);
+			draw(delta, currentTime);
+		}
 
 		lastTime = currentTime;
-	};
-
-	// Feed Mato
-	this.eat = function eat() {
-		self.mato.eaten++;
 	};
 }

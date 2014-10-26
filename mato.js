@@ -48,7 +48,9 @@ function MatoGame(ctx) {
 	//-- Engine variables
 	// Debug mode, adds some textual info and more keys
 	var debug = true,
-		debugText = [];
+		debugText = [],
+		debugGrid = false,
+		debugPos = true;
 
 	// Time stuff
 	var currentTime = 0,
@@ -96,8 +98,8 @@ function MatoGame(ctx) {
 	//-- Object for Mato
 	var Mato = function(spd, size) {
 		// Initial size, add score to get current size
-		// Minimum 1
-		var initialSize = Math.max(1, size);
+		// Minimum 2
+		var initialSize = Math.max(2, size);
 		// How many cells per second Mato moves
 		var speed = spd;
 		// Current direction
@@ -110,11 +112,15 @@ function MatoGame(ctx) {
 		var head = {
 			x: 8, y: 8
 		}, tail = {
-			x: head.x - size, y: 8
+			x: head.x - (initialSize - 1), y: 8
 		};
 		// Previous positions, kept for animation purposes
-		var lastHead = head,
-			lastTail = tail;
+		var lastTail = tail;
+
+		var headPos = getCellPos(head.x, head.y),
+			tailPos = getCellPos(tail.x, tail.y);
+		var lastHeadPos = getCellPos(head.x, head.y),
+			lastTailPos = getCellPos(tail.x, tail.y);
 
 		// Whether we've moved to a new cell recently,
 		// also for animation purposes (we reset lerp fraction after cell change)
@@ -132,7 +138,7 @@ function MatoGame(ctx) {
 		// True if we have just eaten and need to grow
 		var longer = false;
 
-		var lerpAmount = 0;
+		var lerpAmount = 1;
 
 		this.getSpeed = function() {
 			return speed;
@@ -162,6 +168,40 @@ function MatoGame(ctx) {
 
 		this.getHeadPos = function() {
 			return head;
+		};
+
+		// Calculate every position Mato is in
+		// Might be expensive
+		this.getAllPositions = function() {
+			var positions = [];
+			var prevPos = head;
+
+			// For every turn (and then tail), start from previous turn (or head)
+			// and advance one cell towards the turn/tail
+			turns.forEach(function(t) {
+				if (prevPos.x === t.x) {
+					for (var y = prevPos.y; y !== t.y; y < t.y ? y++ : y--) {
+						positions.push({x: prevPos.x, y: y});
+					}
+				} else {
+					for (var x = prevPos.x; x !== t.x; x < t.x ? x++ : x--) {
+						positions.push({x: x, y: prevPos.y});
+					}
+				}
+				prevPos = t;
+			});
+			if (prevPos.x === tail.x) {
+				for (var y = prevPos.y; y !== tail.y; y < tail.y ? y++ : y--) {
+					positions.push({x: prevPos.x, y: y});
+				}
+			} else {
+				for (var x = prevPos.x; x !== tail.x; x < tail.x ? x++ : x--) {
+					positions.push({x: x, y: prevPos.y});
+				}
+			}
+			positions.push({x: tail.x, y: tail.y});
+
+			return positions;
 		};
 
 		this.getNextHeadPos = function getNextHeadPos() {
@@ -216,7 +256,6 @@ function MatoGame(ctx) {
 			cellChanged = true;
 
 			// Update previous positions
-			lastHead = head;
 			lastTail = tail;
 
 			head = this.getNextHeadPos();
@@ -243,12 +282,14 @@ function MatoGame(ctx) {
 
 		this.draw = function draw(delta, ctx) {
 			ctx.strokeStyle = 'black';
-			ctx.lineWidth = 14;
+			ctx.lineWidth = 14; //14;
 
 			// Check if we've advanced to a new cell
 			if (cellChanged) {
 				lerpAmount = 0;
-				cellChanged = false;
+
+				lastHeadPos = headPos;
+				lastTailPos = tailPos;
 			} else {
 				// Animate movement within the cell using lerp
 				lerpAmount += delta * speed;
@@ -257,23 +298,48 @@ function MatoGame(ctx) {
 				}
 			}
 
-			var headPos = getCellPos(head.x, head.y),
-				tailPos = getCellPos(tail.x, tail.y);
-			var lastHeadPos = getCellPos(lastHead.x, lastHead.y),
-				lastTailPos = getCellPos(lastTail.x, lastTail.y);
-			var turn;
+			headPos = getCellPos(head.x, head.y);
+			tailPos = getCellPos(tail.x, tail.y);
 
-			// Animate head and tail
-			headPos = lerp(lastHeadPos, headPos, lerpAmount);
-			tailPos = lerp(lastTailPos, tailPos, lerpAmount);
+			var drawList = turns.map(function(t) {
+				return getCellPos(t.x, t.y);
+			});
 
 			// Draw Mato as a wide line, starting from the head, drawing to each turn,
 			// ending in the tail
+
 			ctx.beginPath();
-			ctx.moveTo(headPos.x, headPos.y);
-			turns.forEach(function(t) {
-				turn = getCellPos(t.x, t.y);
-				ctx.lineTo(turn.x, turn.y);
+
+			var nextTurn = drawList[0] || tailPos;
+
+			// This makes the line longer, so it reaches the 'end' of the cell, instead
+			// of being in the middle
+			// Yes, it's ugly as hell. It has to check which direction the next turn is,
+			// then move the head away from it.
+			if (nextTurn) {
+				if (headPos.x !== nextTurn.x) {
+					if (headPos.x < nextTurn.x) {
+						headPos.x -= game.cellSize/2;
+					} else {
+						headPos.x += game.cellSize/2;
+					}
+				} else {
+					if (headPos.y < nextTurn.y) {
+						headPos.y -= game.cellSize/2;
+					} else {
+						headPos.y += game.cellSize/2;
+					}
+				}
+			}
+
+			// Animate head
+			var headLerp = lerp(lastHeadPos, headPos, lerpAmount);
+
+			ctx.moveTo(headLerp.x, headLerp.y);
+
+			// Draw to each turn
+			drawList.forEach(function(t, i, a) {
+				ctx.lineTo(t.x, t.y);
 			});
 
 			// Without this, the tail animates wonky since the last turn was already removed from the list
@@ -282,22 +348,46 @@ function MatoGame(ctx) {
 				if (lastTurn.x === lastTail.x && lastTurn.y === lastTail.y) {
 					lastTurn = undefined;
 				} else {
-					turn = getCellPos(lastTurn.x, lastTurn.y);
+					var turn = getCellPos(lastTurn.x, lastTurn.y);
 					ctx.lineTo(turn.x, turn.y);
 				}
 			}
-			ctx.lineTo(tailPos.x, tailPos.y);
+
+			// Make the tail-line longer
+			var lastPos = drawList[drawList.length - 1] || headPos;
+			if (tailPos.x !== lastPos.x) {
+				if (tailPos.x < lastPos.x) {
+					tailPos.x -= game.cellSize/2;
+				} else {
+					tailPos.x += game.cellSize/2;
+				}
+			} else {
+				if (tailPos.y < lastPos.y) {
+					tailPos.y -= game.cellSize/2;
+				} else {
+					tailPos.y += game.cellSize/2;
+				}
+			}
+
+			// Animate tail
+			var tailLerp = lerp(lastTailPos, tailPos, lerpAmount);
+			ctx.lineTo(tailLerp.x, tailLerp.y);
+
 			ctx.stroke();
+
+			cellChanged = false;
 		};
 
 		this.eat = function eat() {
+			if (!longer) {
+				score += 1;
+			}
 			longer = true;
-			score += 1;
 		};
 	};
 
 	//-- Gameplay variables
-	this.mato = new Mato(16, 1);
+	this.mato = new Mato(16, 4);
 	var food, oldFood;
 
 	//-- Gameplay functions
@@ -331,6 +421,14 @@ function MatoGame(ctx) {
 		// e
 		69: function() {
 			game.mato.eat();
+		},
+		// f
+		70: function() {
+			debugPos = !debugPos;
+		},
+		// g
+		71: function() {
+			debugGrid = !debugGrid;
 		}
 	};
 
@@ -356,6 +454,13 @@ function MatoGame(ctx) {
 		}
 	};
 
+	var checkForOverlap = function(mato, x, y) {
+		// calculate all Mato's coordinates
+		var coords = [];
+
+		mato.getAllPositions();
+	};
+
 	//-- Updating and drawing
 	var lastMove = 0;
 	var update = function update(delta) {
@@ -376,6 +481,9 @@ function MatoGame(ctx) {
 				y: Math.floor(Math.random() * game.height)
 			};
 		}
+		if (food) {
+			debugText.push('Food: ' + food.x + ', ' + food.y);
+		}
 
 		// When entering new cell, change direction if needed
 		lastMove += delta * 1000;
@@ -383,15 +491,10 @@ function MatoGame(ctx) {
 			m.move();
 			lastMove = 0;
 
-
 			if (m.getHeadPos().x === food.x && m.getHeadPos().y === food.y) {
 				m.eat();
 
-				oldFood = food;
 				food = undefined;
-			} else if (oldFood) {
-				// Remove old food one frame(-ish) later
-				oldFood = undefined;
 			}
 		}
 	};
@@ -431,21 +534,39 @@ function MatoGame(ctx) {
 		ctx.font = '16pt sans-serif';
 		ctx.fillText(game.mato.getScore(), 390, 50);
 
+		// Draw grid
+		if (debug && debugGrid) {
+			ctx.strokeStyle = 'red';
+			for (var x = 0; x <= 800; x += game.cellSize) {
+				ctx.moveTo(0.5 + x, 0);
+				ctx.lineTo(0.5 + x, 640);
+			}
+			for (var y = 0; y <= 640; y += game.cellSize) {
+				ctx.moveTo(0, 0.5 + y);
+				ctx.lineTo(800, 0.5 + y);
+			}
+			ctx.stroke();
+		}
+
 		// Draw food
 		ctx.fillStyle = 'green';
 
 		var pos;
 		if (food) {
 			pos = getCellPos(food.x, food.y);
-			ctx.fillRect(pos.x - 8, pos.y - 8, 14, 14);
-		}
-		if (oldFood) {
-			pos = getCellPos(oldFood.x, oldFood.y);
-			ctx.fillRect(pos.x - 8, pos.y - 8, 14, 14);
+			ctx.fillRect(pos.x - game.cellSize/2 + 1, pos.y - game.cellSize/2 + 1, 14, 14);
 		}
 
 		// Draw Mato
 		game.mato.draw(delta, ctx);
+
+		if (debug && debugPos) {
+			ctx.fillStyle = 'aqua';
+			game.mato.getAllPositions().forEach(function(pos) {
+				pos = getCellPos(pos.x, pos.y);
+				ctx.fillRect(pos.x - game.cellSize/2 + 5, pos.y - game.cellSize/2 + 5, 6, 6);
+			});
+		}
 
 		ctx.restore();
 	};

@@ -57,7 +57,8 @@ function MatoGame(ctx) {
 		lastTime = performanceFill.now();
 
 	var paused = false,
-		gameOver = false;
+		gameOver = false,
+		gameWon = false; // Just in case
 
 	// Cell stuff
 	this.cellSize = 16; // pixels
@@ -125,7 +126,7 @@ function MatoGame(ctx) {
 		var head = {
 			x: 8, y: 8
 		}, tail = {
-			x: head.x - (initialSize - 1), y: 8
+			x: head.x - (initialSize - 1), y: head.y
 		};
 		// Previous positions, kept for animation purposes
 		var lastTail = tail;
@@ -427,6 +428,12 @@ function MatoGame(ctx) {
 				score += 1;
 			}
 			longer = true;
+
+			if (this.getLength() === game.width * game.height) {
+				// Somehow we've won. Wow
+				game.pause(true);
+				gameWon = true;
+			}
 		};
 
 		this.die = function die() {
@@ -436,7 +443,7 @@ function MatoGame(ctx) {
 	};
 
 	//-- Gameplay variables
-	this.mato = new Mato(12, 8);
+	this.mato = new Mato(16, 4);
 	var food;
 
 	//-- Gameplay functions
@@ -444,7 +451,7 @@ function MatoGame(ctx) {
 		return paused;
 	};
 	this.pause = function pause(p) {
-		if (gameOver) {
+		if (gameOver || gameWon) {
 			// Restart the game
 			game.restart();
 		} else {
@@ -455,7 +462,8 @@ function MatoGame(ctx) {
 
 	this.restart = function restart() {
 		gameOver = false;
-		game.mato = new Mato(12, 8);
+		gameWon = false;
+		game.mato = new Mato(16, 4);
 		game.pause(true);
 	};
 
@@ -475,9 +483,7 @@ function MatoGame(ctx) {
 
 	var otherKeys = {
 		// space
-		32: this.pause,
-		// r
-		82: this.restart
+		32: this.pause
 	};
 
 	var debugKeys = {
@@ -498,7 +504,7 @@ function MatoGame(ctx) {
 	//-- Window events
 	window.onkeydown = function onkeydown(e) {
 		var dir = moveKeys[e.keyCode];
-		if (dir) {
+		if (!gameOver && dir) {
 			if (game.isPaused()) {
 				game.pause();
 			}
@@ -531,7 +537,8 @@ function MatoGame(ctx) {
 			];
 		}
 
-		if (!food) {
+		// Pick a cell for the food randomly, until we find an unoccupied one
+		if (!food && !gameOver && !gameWon) {
 			var overlap = true;
 			while (overlap) {
 				food = {
@@ -572,6 +579,12 @@ function MatoGame(ctx) {
 		'Space to restart'
 	];
 
+	var winText = [
+		'You have won!',
+		'',
+		'Space to restart'
+	];
+
 	var draw = function draw(delta, ctx) {
 		ctx.save();
 
@@ -589,7 +602,16 @@ function MatoGame(ctx) {
 			});
 		}
 		// Help text if we're paused
-		if (gameOver) {
+		if (gameWon) {
+			textY = ctx.canvas.height / 2;
+			ctx.font = '16pt sans-serif';
+			ctx.fillStyle = '#1FED92';
+			winText.forEach(function(t) {
+				var w = ctx.measureText(t).width;
+				ctx.fillText(t, ctx.canvas.width / 2 - w / 2, textY);
+				textY += 20;
+			});
+		} else if (gameOver) {
 			textY = ctx.canvas.height / 2;
 			ctx.font = '16pt sans-serif';
 			ctx.fillStyle = '#ED2660';

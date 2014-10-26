@@ -80,6 +80,18 @@ function MatoGame(ctx) {
 		};
 	};
 
+	// Check if given x,y overlap with Mato
+	// returns true on overlap
+	var checkForOverlap = function(mato, x, y) {
+		var posList = mato.getAllPositions();
+
+		posList = posList.filter(function(pos) {
+			return pos.x === x && pos.y === y;
+		});
+
+		return posList.length > 0;
+	};
+
 	var directions = {
 		up: {x: 0, y: -1},
 		down: {x: 0, y: 1},
@@ -252,6 +264,22 @@ function MatoGame(ctx) {
 				y: tail.y + directions[nextMove].y
 			};
 		};
+		this.checkCollision = function checkCollision() {
+			var collision = false;
+			// Check if we've hit ourselves
+			var nextHead = this.getNextHeadPos();
+			collision = checkForOverlap(this, nextHead.x, nextHead.y);
+
+			// And the walls
+			if (nextHead.x < 0 || nextHead.x > game.width ||
+				nextHead.y < 0 || nextHead.y > game.height) {
+				collision = true;
+			}
+
+			if (collision) {
+				game.pause();
+			}
+		};
 
 		this.move = function move() {
 			// Add current position to turn list if we're going to turn
@@ -262,13 +290,12 @@ function MatoGame(ctx) {
 				});
 			}
 
-			// Invalidate position cache
-			cachedPositions = undefined;
-
 			cellChanged = true;
 
 			// Update previous positions
 			lastTail = tail;
+
+			this.checkCollision();
 
 			head = this.getNextHeadPos();
 
@@ -290,6 +317,9 @@ function MatoGame(ctx) {
 			if (moveQueue.length > 0) {
 				direction = moveQueue.shift();
 			}
+
+			// Invalidate position cache
+			cachedPositions = undefined;
 		};
 
 		this.draw = function draw(delta, ctx) {
@@ -464,18 +494,6 @@ function MatoGame(ctx) {
 			debugKeys[e.keyCode]();
 			e.preventDefault();
 		}
-	};
-
-	// Check if given x,y overlap with Mato
-	// returns true on overlap
-	var checkForOverlap = function(mato, x, y) {
-		var posList = mato.getAllPositions();
-
-		posList = posList.filter(function(pos) {
-			return pos.x === x && pos.y === y;
-		});
-
-		return posList.length > 0;
 	};
 
 	//-- Updating and drawing

@@ -126,6 +126,10 @@ function MatoGame(ctx) {
 		// also for animation purposes (we reset lerp fraction after cell change)
 		var cellChanged = false;
 
+		// Holds a cache of all cells Mato is in
+		// Invalidated after every move
+		var cachedPositions;
+
 		// All points where Mato has turned
 		// First index is turn nearest to the head (most recent turn)
 		var turns = [];
@@ -173,6 +177,9 @@ function MatoGame(ctx) {
 		// Calculate every position Mato is in
 		// Might be expensive
 		this.getAllPositions = function() {
+			if (cachedPositions) {
+				return cachedPositions;
+			}
 			var positions = [];
 			var prevPos = head;
 
@@ -200,6 +207,8 @@ function MatoGame(ctx) {
 				}
 			}
 			positions.push({x: tail.x, y: tail.y});
+
+			cachedPositions = positions;
 
 			return positions;
 		};
@@ -253,6 +262,9 @@ function MatoGame(ctx) {
 				});
 			}
 
+			// Invalidate position cache
+			cachedPositions = undefined;
+
 			cellChanged = true;
 
 			// Update previous positions
@@ -282,7 +294,7 @@ function MatoGame(ctx) {
 
 		this.draw = function draw(delta, ctx) {
 			ctx.strokeStyle = 'black';
-			ctx.lineWidth = 14; //14;
+			ctx.lineWidth = 14;
 
 			// Check if we've advanced to a new cell
 			if (cellChanged) {
@@ -387,7 +399,7 @@ function MatoGame(ctx) {
 	};
 
 	//-- Gameplay variables
-	this.mato = new Mato(16, 4);
+	this.mato = new Mato(12, 8);
 	var food, oldFood;
 
 	//-- Gameplay functions
@@ -454,11 +466,16 @@ function MatoGame(ctx) {
 		}
 	};
 
+	// Check if given x,y overlap with Mato
+	// returns true on overlap
 	var checkForOverlap = function(mato, x, y) {
-		// calculate all Mato's coordinates
-		var coords = [];
+		var posList = mato.getAllPositions();
 
-		mato.getAllPositions();
+		posList = posList.filter(function(pos) {
+			return pos.x === x && pos.y === y;
+		});
+
+		return posList.length > 0;
 	};
 
 	//-- Updating and drawing
@@ -476,10 +493,14 @@ function MatoGame(ctx) {
 		}
 
 		if (!food) {
-			food = {
-				x: Math.floor(Math.random() * game.width),
-				y: Math.floor(Math.random() * game.height)
-			};
+			var overlap = true;
+			while (overlap) {
+				food = {
+					x: Math.floor(Math.random() * game.width),
+					y: Math.floor(Math.random() * game.height)
+				};
+				overlap = checkForOverlap(m, food.x, food.y);
+			}
 		}
 		if (food) {
 			debugText.push('Food: ' + food.x + ', ' + food.y);
@@ -509,7 +530,7 @@ function MatoGame(ctx) {
 	var draw = function draw(delta, ctx) {
 		ctx.save();
 
-		ctx.clearRect(0, 0, 800, 640);
+		ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
 		var textY;
 		// Debug text
@@ -537,13 +558,13 @@ function MatoGame(ctx) {
 		// Draw grid
 		if (debug && debugGrid) {
 			ctx.strokeStyle = 'red';
-			for (var x = 0; x <= 800; x += game.cellSize) {
+			for (var x = 0; x <= ctx.canvas.width; x += game.cellSize) {
 				ctx.moveTo(0.5 + x, 0);
-				ctx.lineTo(0.5 + x, 640);
+				ctx.lineTo(0.5 + x, ctx.canvas.height);
 			}
-			for (var y = 0; y <= 640; y += game.cellSize) {
+			for (var y = 0; y <= ctx.canvas.height; y += game.cellSize) {
 				ctx.moveTo(0, 0.5 + y);
-				ctx.lineTo(800, 0.5 + y);
+				ctx.lineTo(ctx.canvas.width, 0.5 + y);
 			}
 			ctx.stroke();
 		}

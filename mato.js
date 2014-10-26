@@ -56,7 +56,8 @@ function MatoGame(ctx) {
 	var currentTime = 0,
 		lastTime = performanceFill.now();
 
-	var paused = false;
+	var paused = false,
+		gameOver = false;
 
 	// Cell stuff
 	this.cellSize = 16; // pixels
@@ -265,10 +266,9 @@ function MatoGame(ctx) {
 			};
 		};
 		this.checkCollision = function checkCollision() {
-			var collision = false;
 			// Check if we've hit ourselves
 			var nextHead = this.getNextHeadPos();
-			collision = checkForOverlap(this, nextHead.x, nextHead.y);
+			var collision = checkForOverlap(this, nextHead.x, nextHead.y);
 
 			// And the walls
 			if (nextHead.x < 0 || nextHead.x > game.width ||
@@ -277,7 +277,7 @@ function MatoGame(ctx) {
 			}
 
 			if (collision) {
-				game.pause();
+				this.die();
 			}
 		};
 
@@ -295,10 +295,6 @@ function MatoGame(ctx) {
 			// Update previous positions
 			lastTail = tail;
 
-			this.checkCollision();
-
-			head = this.getNextHeadPos();
-
 			// If we've eaten, don't shorten the tail
 			if (!longer) {
 				tail = this.getNextTailPos();
@@ -314,12 +310,18 @@ function MatoGame(ctx) {
 				}
 			}
 
+			// Invalidate position cache
+			cachedPositions = undefined;
+
+			this.checkCollision();
+
+			head = this.getNextHeadPos();
+
+			cachedPositions = undefined;
+
 			if (moveQueue.length > 0) {
 				direction = moveQueue.shift();
 			}
-
-			// Invalidate position cache
-			cachedPositions = undefined;
 		};
 
 		this.draw = function draw(delta, ctx) {
@@ -361,15 +363,15 @@ function MatoGame(ctx) {
 			if (nextTurn) {
 				if (headPos.x !== nextTurn.x) {
 					if (headPos.x < nextTurn.x) {
-						headPos.x -= game.cellSize/2;
+						headPos.x -= game.cellSize / 2;
 					} else {
-						headPos.x += game.cellSize/2;
+						headPos.x += game.cellSize / 2;
 					}
 				} else {
 					if (headPos.y < nextTurn.y) {
-						headPos.y -= game.cellSize/2;
+						headPos.y -= game.cellSize / 2;
 					} else {
-						headPos.y += game.cellSize/2;
+						headPos.y += game.cellSize / 2;
 					}
 				}
 			}
@@ -399,15 +401,15 @@ function MatoGame(ctx) {
 			var lastPos = drawList[drawList.length - 1] || headPos;
 			if (tailPos.x !== lastPos.x) {
 				if (tailPos.x < lastPos.x) {
-					tailPos.x -= game.cellSize/2;
+					tailPos.x -= game.cellSize / 2;
 				} else {
-					tailPos.x += game.cellSize/2;
+					tailPos.x += game.cellSize / 2;
 				}
 			} else {
 				if (tailPos.y < lastPos.y) {
-					tailPos.y -= game.cellSize/2;
+					tailPos.y -= game.cellSize / 2;
 				} else {
-					tailPos.y += game.cellSize/2;
+					tailPos.y += game.cellSize / 2;
 				}
 			}
 
@@ -426,18 +428,35 @@ function MatoGame(ctx) {
 			}
 			longer = true;
 		};
+
+		this.die = function die() {
+			game.pause(true);
+			gameOver = true;
+		};
 	};
 
 	//-- Gameplay variables
 	this.mato = new Mato(12, 8);
-	var food, oldFood;
+	var food;
 
 	//-- Gameplay functions
 	this.isPaused = function() {
 		return paused;
 	};
-	this.pause = function pause() {
-		paused = !paused;
+	this.pause = function pause(p) {
+		if (gameOver) {
+			// Restart the game
+			game.restart();
+		} else {
+			p = typeof p !== 'undefined' ? p : !paused;
+			paused = p;
+		}
+	};
+
+	this.restart = function restart() {
+		gameOver = false;
+		game.mato = new Mato(12, 8);
+		game.pause(true);
 	};
 
 	// Key bindings
@@ -456,7 +475,9 @@ function MatoGame(ctx) {
 
 	var otherKeys = {
 		// space
-		32: this.pause
+		32: this.pause,
+		// r
+		82: this.restart
 	};
 
 	var debugKeys = {
@@ -545,6 +566,12 @@ function MatoGame(ctx) {
 		'Space to pause'
 	];
 
+	var deadText = [
+		'You are dead',
+		'',
+		'Space to restart'
+	];
+
 	var draw = function draw(delta, ctx) {
 		ctx.save();
 
@@ -555,22 +582,35 @@ function MatoGame(ctx) {
 		if (debug && debugText.length > 0) {
 			textY = 24;
 			ctx.font = '12pt sans-serif';
+			ctx.fillStyle = 'black';
 			debugText.forEach(function(t) {
 				ctx.fillText(t, 10, textY);
 				textY += 16;
 			});
 		}
 		// Help text if we're paused
-		if (game.isPaused()) {
-			textY = 400;
+		if (gameOver) {
+			textY = ctx.canvas.height / 2;
 			ctx.font = '16pt sans-serif';
+			ctx.fillStyle = '#ED2660';
+			deadText.forEach(function(t) {
+				var w = ctx.measureText(t).width;
+				ctx.fillText(t, ctx.canvas.width / 2 - w / 2, textY);
+				textY += 20;
+			});
+		} else if (game.isPaused()) {
+			textY = ctx.canvas.height / 2;
+			ctx.font = '16pt sans-serif';
+			ctx.fillStyle = 'black';
 			pauseText.forEach(function(t) {
-				ctx.fillText(t, 280, textY);
+				var w = ctx.measureText(t).width;
+				ctx.fillText(t, ctx.canvas.width / 2 - w / 2, textY);
 				textY += 20;
 			});
 		}
 
 		ctx.font = '16pt sans-serif';
+		ctx.fillStyle = 'black';
 		ctx.fillText(game.mato.getScore(), 390, 50);
 
 		// Draw grid
@@ -593,7 +633,7 @@ function MatoGame(ctx) {
 		var pos;
 		if (food) {
 			pos = getCellPos(food.x, food.y);
-			ctx.fillRect(pos.x - game.cellSize/2 + 1, pos.y - game.cellSize/2 + 1, 14, 14);
+			ctx.fillRect(pos.x - game.cellSize / 2 + 1, pos.y - game.cellSize / 2 + 1, 14, 14);
 		}
 
 		// Draw Mato
@@ -603,7 +643,7 @@ function MatoGame(ctx) {
 			ctx.fillStyle = 'aqua';
 			game.mato.getAllPositions().forEach(function(pos) {
 				pos = getCellPos(pos.x, pos.y);
-				ctx.fillRect(pos.x - game.cellSize/2 + 5, pos.y - game.cellSize/2 + 5, 6, 6);
+				ctx.fillRect(pos.x - game.cellSize / 2 + 5, pos.y - game.cellSize / 2 + 5, 6, 6);
 			});
 		}
 
@@ -611,7 +651,6 @@ function MatoGame(ctx) {
 	};
 
 	var tick = function tick() {
-		// TODO: Polyfill this?
 		window.requestAnimationFrame(tick, ctx.canvas);
 
 		// Update time stuff

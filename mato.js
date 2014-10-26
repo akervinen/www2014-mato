@@ -6,37 +6,40 @@ function MatoGame(ctx) {
 	//-- Polyfills for more recent features
 	var performanceFill = (window.performance || {
 		offset: Date.now(),
-		now: function now(){
+		now: function now() {
 			return Date.now() - this.offset;
 		}
 	});
 	// http://paulirish.com/2011/requestanimationframe-for-smart-animating/
 	// http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
-	// requestAnimationFrame polyfill by Erik MÃ¶ller. fixes from Paul Irish and Tino Zijdel
+	// requestAnimationFrame polyfill by Erik Möller. fixes from Paul Irish and Tino Zijdel
 	// MIT license
 	(function() {
 		var lastTime = 0;
 		var vendors = ['ms', 'moz', 'webkit', 'o'];
-		for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
-			window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
-			window.cancelAnimationFrame = window[vendors[x]+'CancelAnimationFrame']
-			|| window[vendors[x]+'CancelRequestAnimationFrame'];
+		for (var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+			window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
+			window.cancelAnimationFrame = window[vendors[x] + 'CancelAnimationFrame'] ||
+			window[vendors[x] + 'CancelRequestAnimationFrame'];
 		}
 
-		if (!window.requestAnimationFrame)
+		if (!window.requestAnimationFrame) {
 			window.requestAnimationFrame = function(callback, element) {
 				var currTime = new Date().getTime();
 				var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-				var id = window.setTimeout(function() { callback(currTime + timeToCall); },
+				var id = window.setTimeout(function() {
+						callback(currTime + timeToCall);
+					},
 					timeToCall);
 				lastTime = currTime + timeToCall;
 				return id;
 			};
-
-		if (!window.cancelAnimationFrame)
+		}
+		if (!window.cancelAnimationFrame) {
 			window.cancelAnimationFrame = function(id) {
 				clearTimeout(id);
 			};
+		}
 	}());
 
 	// Save this for inner functions
@@ -56,8 +59,8 @@ function MatoGame(ctx) {
 	// Cell stuff
 	this.cellSize = 16; // pixels
 	// Field size in cells (should probably make sure this is an integer)
-	this.width = ctx.canvas.width/this.cellSize;
-	this.height = ctx.canvas.height/this.cellSize;
+	this.width = ctx.canvas.width / this.cellSize;
+	this.height = ctx.canvas.height / this.cellSize;
 
 	// Linear interpolation for animations
 	var lerp = function lerp(start, end, amount) {
@@ -70,16 +73,16 @@ function MatoGame(ctx) {
 	// Get the x,y of cell's center
 	var getCellPos = function getCellPos(x, y) {
 		return {
-			x: x * game.cellSize + game.cellSize/2,
-			y: y * game.cellSize + game.cellSize/2
+			x: x * game.cellSize + game.cellSize / 2,
+			y: y * game.cellSize + game.cellSize / 2
 		};
 	};
 
 	var directions = {
-		up: { x: 0, y: -1 },
-		down: { x: 0, y: 1 },
-		left: { x: -1, y: 0 },
-		right: { x: 1, y: 0 }
+		up: {x: 0, y: -1},
+		down: {x: 0, y: 1},
+		left: {x: -1, y: 0},
+		right: {x: 1, y: 0}
 	};
 
 	// Opposite directions to make checking neater later
@@ -116,20 +119,30 @@ function MatoGame(ctx) {
 
 		var lerpAmount = 0;
 
-		this.getSpeed = function() { return speed; };
-		this.getScore = function() { return score; };
+		this.getSpeed = function() {
+			return speed;
+		};
+		this.getScore = function() {
+			return score;
+		};
 
 		this.setDirection = function setDirection(dir) {
-			if (game.isPaused()) { return; }
+			if (game.isPaused()) {
+				return;
+			}
 
 			var lastDir = moveQueue[moveQueue.length - 1] || direction;
 			if (dir !== lastDir && dir !== opposites[lastDir]) {
 				moveQueue.push(dir);
 			}
 		};
-		this.getDirection = function() { return direction; };
+		this.getDirection = function() {
+			return direction;
+		};
 
-		this.getHeadPos = function() { return head; };
+		this.getHeadPos = function() {
+			return head;
+		};
 
 		this.getNextHeadPos = function getNextHeadPos() {
 			var nextMove = moveQueue[0] || direction;
@@ -268,7 +281,9 @@ function MatoGame(ctx) {
 	var food, oldFood;
 
 	//-- Gameplay functions
-	this.isPaused = function() { return paused; };
+	this.isPaused = function() {
+		return paused;
+	};
 	this.pause = function pause() {
 		paused = !paused;
 	};
@@ -294,7 +309,9 @@ function MatoGame(ctx) {
 
 	var debugKeys = {
 		// e
-		69: function() { game.mato.eat(); }
+		69: function() {
+			game.mato.eat();
+		}
 	};
 
 	//-- Window events
@@ -326,7 +343,7 @@ function MatoGame(ctx) {
 		// Update debug text
 		if (debug) {
 			debugText = [
-				'Frametime: ' + Math.round(delta * 1000 * 100)/100 + ' ms',
+				'Frametime: ' + Math.round(delta * 1000 * 100) / 100 + ' ms',
 				'Length: ' + m.getScore(),
 				'Position: ' + m.getHeadPos().x + ', ' + m.getHeadPos().y,
 				'Direction: ' + m.getDirection()
@@ -416,7 +433,7 @@ function MatoGame(ctx) {
 
 		// Update time stuff
 		currentTime = performanceFill.now();
-		var delta = (currentTime - lastTime)/1000;
+		var delta = (currentTime - lastTime) / 1000;
 
 		if (!paused) {
 			update(delta);

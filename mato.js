@@ -94,25 +94,40 @@ function MatoGame(ctx) {
 	};
 
 	//-- Object for Mato
-	var Mato = function(spd) {
+	var Mato = function(spd, size) {
+		// Initial size, add score to get current size
+		// Minimum 1
+		var initialSize = Math.max(1, size);
+		// How many cells per second Mato moves
+		var speed = spd;
+		// Current direction
 		var direction = 'right';
 
+		// Queue of moves, most recent being last
 		var moveQueue = [];
 
+		// Mato's position, measured in cells
 		var head = {
 			x: 8, y: 8
 		}, tail = {
-			x: 4, y: 8
+			x: head.x - size, y: 8
 		};
+		// Previous positions, kept for animation purposes
 		var lastHead = head,
 			lastTail = tail;
+
+		// Whether we've moved to a new cell recently,
+		// also for animation purposes (we reset lerp fraction after cell change)
 		var cellChanged = false;
 
+		// All points where Mato has turned
+		// First index is turn nearest to the head (most recent turn)
 		var turns = [];
+		// Last turn removed from the list, kept for animation
 		var lastTurn;
 
-		var speed = spd;
-		var score = 4;
+		// How much Mato has eaten
+		var score = 0;
 
 		// True if we have just eaten and need to grow
 		var longer = false;
@@ -125,8 +140,13 @@ function MatoGame(ctx) {
 		this.getScore = function() {
 			return score;
 		};
+		this.getLength = function() {
+			return initialSize + score;
+		};
 
-		this.setDirection = function setDirection(dir) {
+		// Add a move into the queue
+		// Only accepts perpendicular moves (ie. only up/down if you're going left or right)
+		this.addMove = function addMove(dir) {
 			if (game.isPaused()) {
 				return;
 			}
@@ -277,7 +297,7 @@ function MatoGame(ctx) {
 	};
 
 	//-- Gameplay variables
-	this.mato = new Mato(16);
+	this.mato = new Mato(16, 1);
 	var food, oldFood;
 
 	//-- Gameplay functions
@@ -321,7 +341,7 @@ function MatoGame(ctx) {
 			if (game.isPaused()) {
 				game.pause();
 			}
-			game.mato.setDirection(dir);
+			game.mato.addMove(dir);
 			e.preventDefault();
 			return;
 		}
@@ -344,7 +364,7 @@ function MatoGame(ctx) {
 		if (debug) {
 			debugText = [
 				'Frametime: ' + Math.round(delta * 1000 * 100) / 100 + ' ms',
-				'Length: ' + m.getScore(),
+				'Length: ' + m.getLength(),
 				'Position: ' + m.getHeadPos().x + ', ' + m.getHeadPos().y,
 				'Direction: ' + m.getDirection()
 			];
@@ -407,6 +427,9 @@ function MatoGame(ctx) {
 				textY += 20;
 			});
 		}
+
+		ctx.font = '16pt sans-serif';
+		ctx.fillText(game.mato.getScore(), 390, 50);
 
 		// Draw food
 		ctx.fillStyle = 'green';

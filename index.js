@@ -1,4 +1,4 @@
-/*global $, Mato */
+/*global $, MatoGame */
 
 var mato;
 
@@ -7,7 +7,7 @@ $(function() {
 
 	var canvas = $('#mato')[0];
 	if (canvas.getContext) {
-		mato = new Mato(canvas.getContext('2d'));
+		mato = new MatoGame(canvas.getContext('2d'));
 		mato.start(true);
 	}
 });

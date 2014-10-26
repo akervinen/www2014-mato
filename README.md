@@ -1,5 +1,5 @@
 # Mato
-A variation of the classic Snake game.
+A JavaScript version of the classic Snake game.
 
 The name comes from the Finnish word for worm, 'mato'.
 

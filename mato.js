@@ -12,7 +12,7 @@ function Mato(ctx) {
 		debugText = [];
 
 	// Time stuff
-	// TODO: Polyfill performance
+	// TODO: Polyfill performance.now
 	var currentTime = 0,
 		lastTime = performance.now();
 
@@ -20,8 +20,9 @@ function Mato(ctx) {
 
 	// Cell stuff
 	this.cellSize = 16; // pixels
-	this.width = ctx.canvas.width/this.cellSize; // cells
-	this.height = ctx.canvas.height/this.cellSize; // cells
+	// Field size in cells (should probably make sure this is an integer)
+	this.width = ctx.canvas.width/this.cellSize;
+	this.height = ctx.canvas.height/this.cellSize;
 
 	// Get the x,y of cell's center
 	var getCellPos = function getCellPos(x, y) {
@@ -60,7 +61,7 @@ function Mato(ctx) {
 		turns: [],
 		// How many cells per second Mato moves
 		speed: 16,
-		// How much Mato has eaten (and how long it is)
+		// How much Mato has eaten (and how long she is)
 		eaten: 4,
 
 		setDirection: function setDirection(dir) {
@@ -85,6 +86,7 @@ function Mato(ctx) {
 					y = this.tail.y,
 					turn = this.turns[this.turns.length - 1];
 
+				// Advance one cell to the last turn's direction
 				if (x < turn.x) {
 					x += 1;
 				} else if (x > turn.x) {
@@ -268,18 +270,20 @@ function Mato(ctx) {
 		// draw Mato
 		var m = self.mato;
 
-		ctx.fillStyle = 'black';
+		// TODO: Switch to using fill?
 		ctx.strokeStyle = 'black';
-		ctx.lineWidth = self.cellSize;
+		ctx.lineWidth = 14;
 
+		// Check if we've advanced to a new cell
 		if (m.head !== lastCurrHead) {
 			lerpAmount = 0;
+			// Keep track of the last cells tail and head were in
 			lastTail = lastCurrTail;
 			lastHead = lastCurrHead;
 			lastCurrTail = m.tail;
 			lastCurrHead = m.head;
 		} else {
-			// Animate movement using simple lerp
+			// Animate movement within the cell using lerp
 			lerpAmount += delta * m.speed;
 			if (lerpAmount > 1) {
 				lerpAmount = 1;
@@ -292,9 +296,12 @@ function Mato(ctx) {
 			lastTailPos = getCellPos(lastTail.x, lastTail.y);
 		var turn;
 
+		// Animate head and tail
 		head = lerp(lastHeadPos, head, lerpAmount);
 		tail = lerp(lastTailPos, tail, lerpAmount);
 
+		// Draw Mato as a wide line, starting from the head, drawing to each turn,
+		// ending in the tail
 		ctx.beginPath();
 		ctx.moveTo(head.x, head.y);
 		m.turns.forEach(function(t) {

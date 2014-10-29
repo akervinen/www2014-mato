@@ -47,10 +47,10 @@ function MatoGame(ctx) {
 
 	//-- Engine variables
 	// Debug mode, adds some textual info and more keys
-	var debug = true,
+	var debug = false,
 		debugText = [],
 		debugGrid = false,
-		debugPos = true;
+		debugPos = false;
 
 	// Time stuff
 	var currentTime = 0,
@@ -512,7 +512,9 @@ function MatoGame(ctx) {
 
 	var otherKeys = {
 		// space
-		32: this.pause
+		32: this.pause,
+		// secret key
+		66: function() { debug = !debug; }
 	};
 
 	var debugKeys = {
@@ -634,9 +636,9 @@ function MatoGame(ctx) {
 				textY += 16;
 			});
 		}
-		// Help text if we're paused
+		// Draw text if we're paused or the game has ended
+		textY = ctx.canvas.height / 2;
 		if (gameWon) {
-			textY = ctx.canvas.height / 2;
 			ctx.font = '16pt sans-serif';
 			ctx.fillStyle = '#1FED92';
 			winText.forEach(function(t) {
@@ -645,7 +647,6 @@ function MatoGame(ctx) {
 				textY += 20;
 			});
 		} else if (gameOver) {
-			textY = ctx.canvas.height / 2;
 			ctx.font = '16pt sans-serif';
 			ctx.fillStyle = '#ED2660';
 			deadText.forEach(function(t) {
@@ -654,7 +655,6 @@ function MatoGame(ctx) {
 				textY += 20;
 			});
 		} else if (game.isPaused()) {
-			textY = ctx.canvas.height / 2;
 			ctx.font = '16pt sans-serif';
 			ctx.fillStyle = 'black';
 			pauseText.forEach(function(t) {
@@ -711,6 +711,8 @@ function MatoGame(ctx) {
 		// Draw Mato
 		game.mato.draw(delta, ctx);
 
+		// Debug draw to display which cells Mato actually occupies (in aqua) and
+		// which cells are stored (in green)
 		if (debug && debugPos) {
 			ctx.fillStyle = 'aqua';
 			game.mato.getAllPositions().forEach(function(pos) {

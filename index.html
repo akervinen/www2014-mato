@@ -24,7 +24,7 @@
 		<label for="formName">Name: </label>
 		<input type="text" name="name" id="formName" placeholder="Enter Name"
 		       required maxlength="20" pattern="[A-Za-zåäöÅÄÖ\s]+"
-		       oninvalid="this.setCustomValidity('Required field, no numbers allowed.')"
+		       oninvalid="this.setCustomValidity('Required field, no numbers or\n special characters allowed.')"
 		       oninput="setCustomValidity('')">
 		<span id="errorText"></span>
 		<input type="hidden" name="score" id="formScore">

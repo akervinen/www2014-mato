@@ -64,11 +64,14 @@ function MatoGame(ctx) {
 	var suspendKeys = false;
 
 	// Callback when the game has ended, for implementing top10 and other similar things
-	this.onEnd = function() {};
+	this.onEnd = function() {
+	};
 
 	// Override this function to return your own top10
 	// No default implementation
-	this.getTopList = function() { return []; };
+	this.getTopList = function() {
+		return [];
+	};
 
 	// Cell stuff
 	this.cellSize = 16; // pixels
@@ -514,7 +517,9 @@ function MatoGame(ctx) {
 		// space
 		32: this.pause,
 		// secret key
-		66: function() { debug = !debug; }
+		66: function() {
+			debug = !debug;
+		}
 	};
 
 	var debugKeys = {

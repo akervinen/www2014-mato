@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+	<meta charset="UTF-8">
+	<title>WWW2014 HT1 Raportti</title>
+
+	<link rel="stylesheet" href="raportti.css">
+</head>
+<body>
+
+<h1>Mato</h1>
+
+<div id="tekija">Aleksi Kervinen - 0387881</div>
+<br>
+
+<h2>Esittely</h2>
+
+<p>
+	Valitsin työkseni Matopelin, sillä pidän itse pelistä ja ajattelin sen olevan sopivan helppo tehdä.
+	Päätin tehdä pelin käyttäen Canvas-elementtiä, jota en ole ennen käyttänyt. Tuloksena on yksinkertainen
+	mutta selkeä ulkonäkö.
+</p>
+
+<p>
+	Pelin idea on itsessään yksinkertainen: syö mahdollisiman paljon törmäämättä seiniin tai itseesi. Joissain pelin
+	versioissa seiniin ei voi törmätä, mutta pidän enemmän alkuperäisestä versiosta (Nokia 3210-nostalgiaa). Jokainen
+	syöty ruoka (max. yksi per ruutu) kasvattaa madon pituutta yhdellä ja antaa yhden pisteen. Vaikeusasteita ei ole,
+	vaan mato kulkee aina samaa nopeutta (16 ruutua per sekunti).
+</p>
+
+<p>
+	Peli käyttää joko nuoli- tai WASD-näppäimiä kääntymiseen, ja välilyönnillä pelin voi keskeyttaa tai jatkaa. Jätin
+	myös peliin debug-moodin, joka näyttää lisäinfoa sisäisistä rakenteista. Moodin saa päälle b-näppäimella, jonka
+	jälkeen f:llä saa näkyviin madon sijaintitiedon, g:llä ruudukon, ja e syöttää matoa.
+</p>
+<br>
+
+<h2>Suunnittelu</h2>
+
+<figure class="rightside">
+	<img src="ruudukko.png">
+	<figcaption>Ruudukoiksi jakaminen.</figcaption>
+</figure>
+<p>
+	Päätin alusta saakka rakentaa pelin ruudukkoon pohjautuen, koska muuten olisi ollut vaikeaa toteutta matopelimäinen
+	tuntuma. Tämä helpotti toteutusta suuresti, mutta toi myös uusia haasteita. Ruudukko-pohjainen liike on vaikeaa
+	saada sujuvan/pehmeän näköiseksi, ja kääntymisestä ei voi tehdä reaaliaikaista.
+</p>
+
+<p>
+	Liikkeen sujuvuuden toteutin käyttämällä yksinkertaista
+	<a href="http://en.wikipedia.org/wiki/Linear_interpolation">
+		lineaariseen interpolaatioon
+	</a> ("lerp") perustuvaa animaatiota. Ruutujen välisenä (kun Mato on oikeasti paikallaan) aikana, jatkan liikettä
+	käyttämällä lerp-pehmennystä.
+</p>
+
+<p>
+	Halusin myös erottaa pelin itse sivun toteutuksesta. Tässä oli ideana se, että pelille annetaan valmiiksi luotu
+	canvas-elementti, ja peli mukautuisi sen kokoon (tämä jäi toteuttamatta). Samalla päätin myös erottaa top10-listan
+	pelistä, jolloin sivu saisi itse päättää minkälaisen listan haluaa (paikallisen, maailmanlaajuisen, jne.)
+	käyttämällä
+	pelin tarjoamia keinoja.
+</p>
+
+<p>
+	Ulkonäön pidin yksinkertaisena (osin selkeyden takia, osin taiteellisen taidon täydellisen puutteen takia).
+	Mato on piirretty vain käyttämällä yhden ruudun levyistä (oletuksena 16px) jatkuvaa viivaa, ruoka on yksi fillRect.
+
+</p>
+<br>
+
+<h2>Rakenne</h2>
+
+<p>
+	Peli itse ei käytä jQueryä tai
+	jQuery UI:ta lainkaan, eikä se luo canvas-elementtiä itselleen. Sen sijaan toinen .js-tiedosto (minulla index.js)
+	ja itse index.html määrittävät canvas-elementin kokoa 800x640 (tästä oli alunperin tarkoitus tehdä dynaaminen, eli
+	canvas saisi olla minkä kokoinen tahansa ja peli mukautuisi siihen). Näin sain pelin erotettua html-sivun
+	toteutuksesta.
+</p>
+
+<p>
+	Top10-listan erotus on tehty siten, että peli tarjoaa ylikirjoitettavan <code>onEnd</code>-funktion, jota kutsutaan
+	pelin
+	loputtua. Tämän jälkeen top10-listan voi antaa pelille takaisin valmiiksi formatoituna merkkijonolistana
+	ylikirjoittamalla <code>getTopList</code>-funktion, jota peli kutsuu piirtovaiheessa.
+</p>
+
+<figure class="rightside">
+	<img src="mato.png">
+	<figcaption>Vihreät pisteet säilytetään, vaaleansiniset on laskettu niistä.</figcaption>
+</figure>
+<p>
+	Itse madon rakenne on erikoinen, ja mahdollisesti huono valinta koodin selkeyden kannalta. Sen sijaan että
+	säilyttäisin listassa jokaisen ruudun koordinaatit, joissa mato on, säilytän madosta pelkästään pään, hännän, ja
+	jokaisen mutkan koordinaatit. Tämä vie vähemmän tilaa kuin jokainen ruutu, mutta mutkistaa (pun intended) asioita,
+	kun miettii törmäyksentunnistusta.
+</p>
+
+<p>
+	Pelin sujuvuuden takaamiseksi (ja myös huvin vuoksi), käytin pelin toteutukseen kahta vähän uudempaa funktiota,
+	joista on myös tarjottu fallback-versiot, jos selain ei niitä tue.
+</p>
+
+<p>
+	<code>requestAnimationFrame</code> on funktio, joka kutsuu sille annettua funktiota aina, kun selain on piirtämässä
+	sivua uudelleen. Tämä tekee piirtämisestä sujuvampaa, kun peli pystyy piirtämään itsensä samanaikaisesti selaimen
+	kanssa. Samalla sille voi myös antaa elementin, jota se käyttää piirron optimoimiseen; esim. lopettaa piirtämisen
+	kokonaan, jos elementti on ruudun ulkopuolella.
+</p>
+
+<p>
+	<code>performance.now</code> korvaa koodissani <code>Date.now</code>:n käytön. Se tarjoaa alle millisekunnin
+	tarkkuisen kellon, kun vanha menetelmä on minimissään yksi millisekunti. Teoriassa se tekee pelistä sujuvamman,
+	mutta käytännössä näin kevyellä pelillä eroa on vaikea huomata.
+</p>
+
+<p>
+	Sisällytin kummallekin funktiolle polyfill-toteutuksen, eli jos niitä ei ole olemassa selaimessa, ne toteutetaan
+	vaihtoehtoisella tavalla (<code>requestAnimationFrame</code> käyttää <code>setTimeout</code>:ia,
+	<code>performance.now</code> <code>Date.now</code>:ia).
+</p>
+<br>
+
+<h2>Linkit</h2>
+<ul>
+	<li><a href="http://ct100020vir2.pc.lut.fi/~f0387881/mato/">Itse peli</a></li>
+	<li><a href="https://bitbucket.org/akervinen/mato">Repositorio kaikkine commiteineen</a></li>
+</ul>
+<br>
+
+<h2>Lähteet</h2>
+<ul>
+	<li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript">MDN</a></li>
+	<li><a href="https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial">MDN Canvas</a></li>
+	<li><a href="http://benalman.com/news/2010/11/immediately-invoked-function-expression/">Immediately-Invoked Function
+		Expression</a></li>
+	<li><a href="https://gist.github.com/paulirish/1579671">requestAnimationFrame polyfill</a></li>
+	<li><a href="https://gist.github.com/paulirish/5438650">performance.now polyfill</a></li>
+	<li>StackOverflow:
+		<ul>
+			<li><a href="http://stackoverflow.com/a/7487770">Why does requestAnimationFrame function accept an element
+				as an argument?</a></li>
+			<li>
+				<a href="http://stackoverflow.com/questions/3437786/get-the-size-of-the-screen-current-web-page-and-browser-window">Get
+					the size of the screen, current web page and browser window</a> (vaikka en lopulta käyttänytkään
+				tätä)
+			</li>
+			<li><a href="http://stackoverflow.com/a/20189012">HTML5 form required attribute. Set custom validation
+				message?</a></li>
+			<li><a href="http://stackoverflow.com/a/1023090">jquery UI dialog: how to initialize without a title
+				bar?</a></li>
+		</ul>
+	</li>
+</ul>
+</body>
+</html>

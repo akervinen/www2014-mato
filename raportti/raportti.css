@@ -1,0 +1,18 @@
+body {
+	width: 800px;
+	margin: 0 auto;
+}
+
+h1 {
+	text-align: center;
+}
+
+#tekija {
+	display: inline;
+	float: right;
+}
+
+.rightside {
+	display: inline-block;
+	float: right;
+}

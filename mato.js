@@ -60,6 +60,9 @@ function MatoGame(ctx) {
 		gameOver = false,
 		gameWon = false; // Just in case
 
+	// Callback when the game has ended, for implementing top10 and other similar things
+	this.onEnd = function() {};
+
 	// Cell stuff
 	this.cellSize = 16; // pixels
 	// Field size in cells (should probably make sure this is an integer)
@@ -433,12 +436,15 @@ function MatoGame(ctx) {
 				// Somehow we've won. Wow
 				game.pause(true);
 				gameWon = true;
+				game.onEnd(true, this.getScore());
 			}
 		};
 
 		this.die = function die() {
 			game.pause(true);
 			gameOver = true;
+
+			game.onEnd(false, this.getScore());
 		};
 	};
 

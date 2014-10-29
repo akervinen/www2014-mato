@@ -6,6 +6,8 @@
 
 	<link rel="stylesheet" href="index.css">
 	<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+	<link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/themes/smoothness/jquery-ui.css"/>
+	<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js"></script>
 	<script src="mato.js"></script>
 	<script src="index.js"></script>
 </head>
@@ -16,6 +18,19 @@
 <canvas id="mato" width="800" height="640">
 	Mato needs canvas support to work.
 </canvas>
+
+<div id="nameDialog">
+	<form id="nameForm">
+		<label for="formName">Name: </label>
+		<input type="text" name="name" id="formName" placeholder="Enter Name"
+		       required maxlength="20" pattern="[A-Za-zåäöÅÄÖ\s]+"
+		       oninvalid="this.setCustomValidity('Required field, no numbers allowed.')"
+		       oninput="setCustomValidity('')">
+		<span id="errorText"></span>
+		<input type="hidden" name="score" id="formScore">
+		<input type="submit" value="Submit">
+	</form>
+</div>
 
 </body>
 </html>

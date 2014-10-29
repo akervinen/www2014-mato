@@ -16,3 +16,7 @@ body {
 
 	text-align: center;
 }
+
+.noTitleStuff .ui-dialog-titlebar {
+	display: none;
+}

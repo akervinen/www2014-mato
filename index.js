@@ -2,24 +2,54 @@
 
 var mato, scores;
 
-function matoEnd(won, score) {
-	"use strict";
+function saveScore(mato, name, score) {
+	'use strict';
+
+	// Here we add the score to top10, sort it and remove any extra scores
 
 	scores.push({
-		name: 'foo',
+		name: name,
 		score: score
 	});
 
 	scores.sort(function(a, b) {
-		return a.score < b.score;
+		return b.score - a.score;
 	});
 	if (scores.length > 10) {
 		scores.splice(scores.length - 1, 1);
 	}
 
+	// For some reason (???), splice or something made the scores go in the wrong order,
+	// so this seems to fix it
+	scores.sort(function(a, b) {
+		return b.score - a.score;
+	});
+
 	localStorage.setItem('matoScores', JSON.stringify(scores));
 
-	// true to handle restarting game ourselves
+	// resume reading keybinds
+	mato.suspendKeys(false);
+}
+
+function matoEnd(score) {
+	'use strict';
+
+	// Check if we have enough points to get into top 10
+	var scoreEnough = scores.length < 10;
+	scores.forEach(function(o) {
+		if (score > o.score) {
+			scoreEnough = true;
+		}
+	});
+
+	if (!scoreEnough) {
+		return false;
+	}
+
+	$('#formScore').val(score);
+	$('#nameDialog').dialog('open');
+
+	// true to prevent the game from reading keybinds
 	return true;
 }
 
@@ -35,8 +65,31 @@ $(function() {
 			scores = JSON.parse(scoreStorage);
 		}
 
+		// Prepare name form
+		$('#nameForm').submit(function(e) {
+			saveScore(mato, $('#formName').val(), parseInt($('#formScore').val()));
+			$('#nameDialog').dialog('close');
+			e.preventDefault();
+		});
+
+		// Prepare dialog
+		$('#nameDialog').dialog({
+			autoOpen: false,
+			modal: true,
+			width: 'auto',
+			minHeight: 0,
+			dialogClass: 'noTitleStuff',
+			closeOnEscape: false
+		});
+
 		mato = new MatoGame(canvas.getContext('2d'));
+		// Add callbacks for top10
 		mato.onEnd = matoEnd;
+		mato.getTopList = function() {
+			return scores.map(function(o) {
+				return o.score + ' - ' + o.name;
+			});
+		};
 		mato.start(true);
 	}
 });

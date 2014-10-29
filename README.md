@@ -13,5 +13,7 @@ This projected is licensed under the terms of the MIT license. See [LICENSE](LIC
 * [requestAnimationFrame polyfill](https://gist.github.com/paulirish/1579671)
 * [performance.now polyfill](https://gist.github.com/paulirish/5438650)
 * StackOverflow:
-	* [Why does requestAnimationFrame function accept an element as an argument?](http://stackoverflow.com/questions/7487691/why-does-requestanimationframe-function-accept-an-element-as-an-argument)
+	* [Why does requestAnimationFrame function accept an element as an argument?](http://stackoverflow.com/a/7487770)
 	* [Get the size of the screen, current web page and browser window](http://stackoverflow.com/questions/3437786/get-the-size-of-the-screen-current-web-page-and-browser-window)
+	* [HTML5 form required attribute. Set custom validation message?](http://stackoverflow.com/a/20189012)
+	* [jquery UI dialog: how to initialize without a title bar?](http://stackoverflow.com/a/1023090)

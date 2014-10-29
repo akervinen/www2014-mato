@@ -60,8 +60,15 @@ function MatoGame(ctx) {
 		gameOver = false,
 		gameWon = false; // Just in case
 
+	// Suspend keys when an external dialog or something is open
+	var suspendKeys = false;
+
 	// Callback when the game has ended, for implementing top10 and other similar things
 	this.onEnd = function() {};
+
+	// Override this function to return your own top10
+	// No default implementation
+	this.getTopList = function() { return []; };
 
 	// Cell stuff
 	this.cellSize = 16; // pixels
@@ -189,6 +196,14 @@ function MatoGame(ctx) {
 
 		this.getHeadPos = function() {
 			return head;
+		};
+
+		this.getTailPos = function() {
+			return tail;
+		};
+
+		this.getTurns = function() {
+			return turns;
 		};
 
 		// Calculate every position Mato is in
@@ -436,7 +451,9 @@ function MatoGame(ctx) {
 				// Somehow we've won. Wow
 				game.pause(true);
 				gameWon = true;
-				game.onEnd(true, this.getScore());
+				if (game.onEnd(this.getScore())) {
+					suspendKeys = true;
+				}
 			}
 		};
 
@@ -444,7 +461,9 @@ function MatoGame(ctx) {
 			game.pause(true);
 			gameOver = true;
 
-			game.onEnd(false, this.getScore());
+			if (game.onEnd(this.getScore())) {
+				suspendKeys = true;
+			}
 		};
 	};
 
@@ -471,6 +490,10 @@ function MatoGame(ctx) {
 		gameWon = false;
 		game.mato = new Mato(16, 4);
 		game.pause(true);
+	};
+
+	this.suspendKeys = function(sk) {
+		suspendKeys = sk;
 	};
 
 	// Key bindings
@@ -509,6 +532,10 @@ function MatoGame(ctx) {
 
 	//-- Window events
 	window.onkeydown = function onkeydown(e) {
+		if (suspendKeys) {
+			return;
+		}
+
 		var dir = moveKeys[e.keyCode];
 		if (!gameOver && dir) {
 			if (game.isPaused()) {
@@ -637,6 +664,23 @@ function MatoGame(ctx) {
 			});
 		}
 
+		// Draw Top10 if one is implemented
+		if (game.isPaused()) {
+			var list = game.getTopList();
+			if (list && list.length > 0) {
+				ctx.font = 'bold 14pt sans-serif';
+				ctx.fillStyle = 'black';
+				textY = 400;
+				ctx.fillText('Top 10', 10, textY);
+				ctx.font = '12pt sans-serif';
+				textY += 30;
+				list.forEach(function(t) {
+					ctx.fillText(t, 20, textY);
+					textY += 20;
+				});
+			}
+		}
+
 		ctx.font = '16pt sans-serif';
 		ctx.fillStyle = 'black';
 		ctx.fillText(game.mato.getScore(), 390, 50);
@@ -670,6 +714,14 @@ function MatoGame(ctx) {
 		if (debug && debugPos) {
 			ctx.fillStyle = 'aqua';
 			game.mato.getAllPositions().forEach(function(pos) {
+				pos = getCellPos(pos.x, pos.y);
+				ctx.fillRect(pos.x - game.cellSize / 2 + 5, pos.y - game.cellSize / 2 + 5, 6, 6);
+			});
+			ctx.fillStyle = 'green';
+			var stuff = game.mato.getTurns().slice(0);
+			stuff.unshift(game.mato.getHeadPos());
+			stuff.push(game.mato.getTailPos());
+			stuff.forEach(function(pos) {
 				pos = getCellPos(pos.x, pos.y);
 				ctx.fillRect(pos.x - game.cellSize / 2 + 5, pos.y - game.cellSize / 2 + 5, 6, 6);
 			});
